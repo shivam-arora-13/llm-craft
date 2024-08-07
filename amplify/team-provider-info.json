@@ -1,0 +1,27 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-llmcraft-dev-4ebd4-authRole",
+      "UnauthRoleArn": "arn:aws:iam::024848443625:role/amplify-llmcraft-dev-4ebd4-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::024848443625:role/amplify-llmcraft-dev-4ebd4-authRole",
+      "Region": "ap-south-1",
+      "DeploymentBucketName": "amplify-llmcraft-dev-4ebd4-deployment",
+      "UnauthRoleName": "amplify-llmcraft-dev-4ebd4-unauthRole",
+      "StackName": "amplify-llmcraft-dev-4ebd4",
+      "StackId": "arn:aws:cloudformation:ap-south-1:024848443625:stack/amplify-llmcraft-dev-4ebd4/8d8fffb0-5348-11ef-b377-027e37b9b385",
+      "AmplifyAppId": "d1zs65d2kk52bg"
+    },
+    "categories": {
+      "api": {
+        "llmcraft": {}
+      },
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d1zs65d2kk52bg",
+          "type": "manual"
+        },
+        "S3AndCloudFront": {}
+      }
+    }
+  }
+}

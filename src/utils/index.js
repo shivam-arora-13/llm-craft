@@ -1,6 +1,7 @@
 import { generateClient } from 'aws-amplify/api';
 import { createLeaderboard, updateLeaderboard } from '../graphql/mutations';
 import { listLeaderboards } from '../graphql/queries';
+import AWS from 'aws-sdk';
 
 export const client = generateClient();
 
@@ -19,29 +20,65 @@ export const fetchUsers = async () => {
     });
 };
 
-export const submitHandler = async () => {
+export const updateScore = async (user) => {
+    return await client.graphql({
+        query: updateLeaderboard,
+        variables: {
+            input: user
+        }
+    })
+}
 
-};
+export const fetchResponse = async (req) => {
+    const lambda = new AWS.Lambda();
 
-export const LevelInfo = [
-    {"text": "The famous actor 'Leonardo DiCaprio' was last seen at a party hosted by a director known for a blockbuster movie released in 1997. Identify the director.",
-     "expected_sql_query": "SELECT director FROM Movies WHERE release_year = 1997 AND title = 'Titanic';",
-     "expected_result": ['James Cameron']
-    },
-    {"text": "The director, James Cameron, mentioned that Leonardo was with an actress who played a lead role in a 2009 movie directed by him. Find the actress.",
-     "expected_sql_query": "SELECT name FROM Actors WHERE actor_id IN (SELECT actor_id FROM Cast WHERE movie_id = (SELECT movie_id FROM Movies WHERE title = 'Avatar'));",
-     "expected_result": ['Zoe Saldana']
-    },
-    {"text": "This actress, Zoe Saldana, was seen talking to an actor known for playing 'Sherlock Holmes' in a 2009 movie. Find this actor.",
-     "expected_sql_query": "SELECT name FROM Actors WHERE actor_id IN (SELECT actor_id FROM Cast WHERE movie_id = (SELECT movie_id FROM Movies WHERE title = 'Sherlock Holmes'));",
-     "expected_result": ['Robert Downey Jr.']
-    },
-    {"text": "Robert Downey Jr. was seen leaving the party with an actor who won an Oscar for a lead role in a movie directed by Martin Scorsese. Find this actor.",
-     "expected_sql_query": "SELECT name FROM Actors WHERE actor_id IN (SELECT actor_id FROM Cast WHERE movie_id = (SELECT movie_id FROM Movies WHERE director = 'Martin Scorsese' AND title = 'The Departed'));",
-     "expected_result": ['Leonardo DiCaprio']
-    },
-    {"text": "This actor was last seen with someone known for a famous dialogue: 'I'll be back.' Identify the kidnapper.",
-     "expected_sql_query": "SELECT name FROM Actors WHERE name = 'Arnold Schwarzenegger';",
-     "expected_result": ['Arnold Schwarzenegger']
+    const params = {
+        FunctionName: 'LLMCraftSqlConnector', // Replace with your Lambda function name
+        Payload: JSON.stringify(req), // Replace with any payload you need to send
+    };
+
+    try {
+        const result = await lambda.invoke(params).promise();
+        const resultPayload = JSON.parse(result.Payload);
+        console.log(resultPayload);
+    } catch (error) {
+        console.error('Error invoking Lambda function:', error);
     }
-]
+}
+
+export const context = {
+    "context": "The stage is set for the IPL season opener, with excitement in the air. The auction was fierce, with teams battling it out for the best players.\n\n But on the eve of the opening match, an ominous silence falls over the cricketing world. The most expensive player of this season's auction has vanished.\n\nWhispers of foul play are spreading, and it's up to you to uncover the truth behind this mysterious disappearance. As you dig deeper, you'll need to navigate through a web of secrets and rivalries.\n\nCan you solve the mystery before the first ball is bowled?",
+    "clues": [
+        {
+            "clue": "The auction was intense, with one player emerging as the most expensive buy of the season. This player was expected to be the star of the opener, but now, he's missing. Start by identifying who this player is.",
+            "expected_user_prompt": "Find the name of the most expensive player from this season's auction.",
+            "expected_sql_query": "SELECT P.name FROM Player P INNER JOIN Auction A ON P.id = A.player_id ORDER BY A.price DESC LIMIT 1;",
+            "answer": "Most Expensive Player Name"
+        },
+        {
+            "clue": "The player was purchased by a team that had high hopes for him. If we know which team bought him, we might get closer to finding out what happened.",
+            "expected_user_prompt": "Identify the team that purchased the most expensive player.",
+            "expected_sql_query": "SELECT T.name FROM Team T INNER JOIN Auction A ON T.id = A.team_id INNER JOIN Player P ON P.id = A.player_id ORDER BY A.price DESC LIMIT 1;",
+            "answer": "Team Name"
+        },
+        {
+            "clue": "The coach of this team could have some information about the player's whereabouts. Finding the coach might give us a lead.",
+            "expected_user_prompt": "Find the coach of the team that purchased the most expensive player.",
+            "expected_sql_query": "SELECT T.coach_name FROM Team T INNER JOIN Auction A ON T.id = A.team_id INNER JOIN Player P ON P.id = A.player_id ORDER BY A.price DESC LIMIT 1;",
+            "answer": "Coach Name"
+        },
+        {
+            "clue": "The coach mentions that there was a player in the team last year who was their highest run-scorer, but they didn't buy him this season. The coach suspects this player might have a motive for revenge.",
+            "expected_user_prompt": "Identify the player who was the highest run-scorer for the team last season but was not bought this season.",
+            "expected_sql_query": "SELECT P.name FROM Player P INNER JOIN Auction A ON P.id = A.player_id WHERE P.prev_team_id = (SELECT T.id FROM Team T INNER JOIN Auction A ON T.id = A.team_id ORDER BY A.price DESC LIMIT 1) ORDER BY P.prev_season_runs DESC LIMIT 1;",
+            "answer": "Highest Run-Getter Name"
+        },
+        {
+            "clue": "All evidence points to this player being behind the kidnapping. The motive seems clear—revenge for being let go by the team. It's time to confirm your suspicions and bring the culprit to light.",
+            "expected_user_prompt": "Confirm the name of the player who kidnapped the most expensive player for revenge.",
+            "expected_sql_query": "SELECT P.name FROM Player P WHERE P.name = (SELECT P.name FROM Player P INNER JOIN Auction A ON P.id = A.player_id WHERE P.prev_team_id = (SELECT T.id FROM Team T INNER JOIN Auction A ON T.id = A.team_id ORDER BY A.price DESC LIMIT 1) ORDER BY P.prev_season_runs DESC LIMIT 1);",
+            "answer": "Kidnapper's Name"
+        }
+    ],
+    // schemas:
+}

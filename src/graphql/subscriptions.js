@@ -9,6 +9,7 @@ export const onCreateLeaderboard = /* GraphQL */ `
       id
       username
       score
+      avatarSrc
       createdAt
       updatedAt
       __typename
@@ -23,6 +24,7 @@ export const onUpdateLeaderboard = /* GraphQL */ `
       id
       username
       score
+      avatarSrc
       createdAt
       updatedAt
       __typename
@@ -37,6 +39,7 @@ export const onDeleteLeaderboard = /* GraphQL */ `
       id
       username
       score
+      avatarSrc
       createdAt
       updatedAt
       __typename

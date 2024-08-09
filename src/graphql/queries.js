@@ -7,6 +7,7 @@ export const getLeaderboard = /* GraphQL */ `
       id
       username
       score
+      avatarSrc
       createdAt
       updatedAt
       __typename
@@ -24,6 +25,7 @@ export const listLeaderboards = /* GraphQL */ `
         id
         username
         score
+        avatarSrc
         createdAt
         updatedAt
         __typename

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUsers, client } from '../utils';
+import { fetchUsers, client, updateScore } from '../utils';
 import { onCreateLeaderboard, onUpdateLeaderboard } from '../graphql/subscriptions';
-import { Table } from 'reactstrap';
-
+import { Leaderboard as AnimatedLeaderboard } from './Leaderboard/Leaderboard';
+import { Form, FormGroup, Label, Button } from 'reactstrap';
+// ADD QR CODE TO IT
 const Leaderboard = () => {
     const [leaders, setLeaders] = useState([]);
 
     useEffect(() => {
         (async () => {
             const users = await fetchUsers();
-            users.data.listLeaderboards.items.sort((a, b) => b.score - a.score)
             setLeaders(users.data.listLeaderboards.items)
         })()
 
@@ -31,7 +31,6 @@ const Leaderboard = () => {
                     const updated = prev.map((user) =>
                         user.id === updatedUser.id ? updatedUser : user
                     )
-                    updated.sort((a, b) => b.score - a.score);
                     return updated;
                 }
                 );
@@ -44,44 +43,29 @@ const Leaderboard = () => {
         };
     }, [])
 
+    const submitHandler = (e) => {
+        e.preventDefault();
+        updateScore(
+            {
+                "id": "45be1ea8-d99a-499e-84de-7400cabc5d1e",
+                "username": "Thor",
+                "score": 65,
+                "avatarSrc": "avatar1.png"
+            }
+    );
+    }
     return <div style={{
         display: 'flex',
         flexDirection: 'column',
-        rowGap: '2rem',
+        rowGap: '1rem',
         padding: '2rem'
     }}>
-        <h1>Leaderboard</h1>
-        <Table striped>
-            <thead>
-                <tr>
-                    <th>
-                        #
-                    </th>
-                    <th>
-                        Username
-                    </th>
-                    <th>
-                        Score
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                {leaders.map((user, idx) => (
-                    <tr key={user.id}>
-                        <th scope="row">
-                            {idx + 1}
-                        </th>
-                        <td>
-                            {user.username}
-                        </td>
-                        <td>
-                            {user.score}
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </Table>
+        <AnimatedLeaderboard currentData={leaders} />
+        <Form onSubmit={submitHandler}>
+            <Button type='submit' style={{ width: '100%' }}>Submit</Button>
+        </Form>
     </div>
+
 };
 
 export default Leaderboard;

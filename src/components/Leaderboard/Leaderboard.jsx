@@ -18,11 +18,13 @@ export function Leaderboard({ currentData }) {
 
     const sortArrayByProperty = () => {
         return [...currentData].sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score;
-            }
-            const diffA = new Date(a.updatedAt) - new Date(a.createdAt);
-            const diffB = new Date(b.updatedAt) - new Date(b.createdAt);
+            return b.score - a.score;
+            // if (b.score !== a.score) {
+            //     return b.score - a.score;
+            // }
+            // const diffA = new Date(a.updatedAt) - new Date(a.createdAt);
+            // const diffB = new Date(b.updatedAt) - new Date(b.createdAt);
+            // return diffA - diffB;
         });
     }
 

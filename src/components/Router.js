@@ -13,7 +13,7 @@ import Leaderboard from './Leaderboard';
 import Game from './Game';
 import { Avatar } from 'antd';
 
-export default ({ avatarSrc }) => {
+export default ({ avatarSrc, updateUser, score }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const toggle = () => setIsOpen(!isOpen);
@@ -34,11 +34,19 @@ export default ({ avatarSrc }) => {
                     </Nav>
                 </Collapse> */}
                 {/* COMMENT END HERE */}
-                <Avatar size="large" src={require(`../avatars/${avatarSrc}`)} />
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    columnGap: '1rem'
+                }}>
+                    <p style={{ margin: '0' }}><strong>{score}</strong> Points</p>
+                    <Avatar size="large" src={require(`../avatars/${avatarSrc}`)} />
+                </div>
             </Navbar>
         </div>
         <Routes>
-            <Route exact path="/" element={<Game />} />
+            <Route exact path="/" element={<Game updateUser={updateUser} />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
         </Routes>
     </>

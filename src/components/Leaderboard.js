@@ -47,11 +47,11 @@ const Leaderboard = () => {
         e.preventDefault();
         updateScore(
             {
-                "id": "45be1ea8-d99a-499e-84de-7400cabc5d1e",
-                "username": "Thor",
-                "score": 65,
-                "avatarSrc": "avatar1.png"
-            }
+                "id": "d95e1dff-bde6-494d-8042-01668d0f2eda",
+                "username": "Gaurav",
+                "score": 90,
+                "avatarSrc": "avatar2.png",
+            },
     );
     }
     return <div style={{

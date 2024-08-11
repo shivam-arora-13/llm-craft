@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Form, FormGroup, Label, Button } from 'reactstrap';
 import { enqueueSnackbar } from 'notistack';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { CopyBlock } from 'react-code-blocks';
-import { TrophyFilled, TrophyTwoTone } from '@ant-design/icons';
+import { TrophyFilled, LoadingOutlined } from '@ant-design/icons';
 import AppPagination from './AppPagination';
 import { JsonToTable } from "react-json-to-table";
-import { schemas } from '../mocks';
-import { context, fetchResponse } from '../utils';
-import { Input, Alert } from 'antd';
+import { context, fetchResponse, getResponseStatus } from '../utils';
+import { Input, Alert, Avatar, Spin } from 'antd';
 const { TextArea } = Input;
 
-const Game = () => {
+const Game = ({updateUser}) => {
     const [userLevel, setUserLevel] = useState(0);
     const [displayLevel, setDisplayLevel] = useState(0);
     const [formValues, setFormValues] = useState({
@@ -19,6 +18,8 @@ const Game = () => {
         prompt: []
     });
     const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [displayResult, setDisplayResult] = useState(null);
     const maxLevel = context.clues.length;
 
     // SETS LEVEL VALUES
@@ -48,10 +49,15 @@ const Game = () => {
         const savedResults = localStorage.getItem('llm_craft_results');
         if (savedResults) {
             setResults(JSON.parse(savedResults));
+            setDisplayResult(savedResults[displayLevel-1]);
         } else {
             localStorage.setItem('llm_craft_results', JSON.stringify(results));
         }
     }, []);
+
+    useEffect(()=>{
+        setDisplayResult(results[displayLevel-1]);
+    }, [displayLevel]);
 
     const updateUserLevel = (lv) => {
         setUserLevel(lv);
@@ -61,17 +67,18 @@ const Game = () => {
 
     const submitHandler = async (e) => {
         e.preventDefault();
+        setLoading(true);
         localStorage.setItem('llm_craft_form_values', JSON.stringify(formValues));
-        // Get result
-        // 'error' | 'success'
-        await fetchResponse({
+        const res = await fetchResponse({
             system_message: formValues.system_message,
-            prompt: formValues.prompt[displayLevel-1]
+            prompt: formValues.prompt[displayLevel - 1]
         });
+        console.log(res);
         const levelResult = {
-            status: 'success',
-            sql: 'SELECT name FROM Actors where actorID = 234;',
-            response: { name: 'Leonardo DiCaprio' }
+            status: getResponseStatus(res.result, context.clues[displayLevel - 1].answer) ? 'success' : 'error',
+            sql: res.sql_query,
+            response: res.result,
+            isExecutable: res.isExecutable
         };
         // Show some alert
         enqueueSnackbar(
@@ -86,11 +93,18 @@ const Game = () => {
             newResults[displayLevel - 1] = levelResult;
         }
         setResults(newResults);
+        setDisplayResult(levelResult);
         localStorage.setItem('llm_craft_results', JSON.stringify(newResults));
-        // Change level values
-        // MAKE IT CONDITIONAL
-        updateUserLevel(userLevel + 1);
-        // Update Score        
+        if (levelResult.status === 'success') {
+            updateUserLevel(userLevel + 1);
+            // Update Score  
+            const solvedAt = Date.now()
+            const prevSolvedAt = Number(localStorage.getItem('llm_craft_last_time_stamp'));
+            localStorage.setItem('llm_craft_last_time_stamp', solvedAt);
+            const score = Math.floor(10000000/(solvedAt - prevSolvedAt));
+            await updateUser(score);
+        }
+        setLoading(false)
     };
 
     if (displayLevel === 0) return <div style={{
@@ -117,18 +131,18 @@ const Game = () => {
                 overflowY: 'scroll',
                 whiteSpace: 'pre-line'
             }}>{context.context}</div>
-            <Button 
+            <Button
                 color="primary"
                 onClick={() => {
-                    if(userLevel === 0){
+                    if (userLevel === 0) {
                         setDisplayLevel(1);
                         updateUserLevel(1);
-                    }else {
+                    } else {
                         setDisplayLevel(userLevel);
                     }
                 }}
                 style={{ width: '100%' }}
-                >{ userLevel === 0 ? 'Start' : 'Continue'}</Button>
+            >{userLevel === 0 ? 'Start' : 'Continue'}</Button>
         </div>
         <AppPagination
             userLevel={userLevel}
@@ -155,13 +169,14 @@ const Game = () => {
             rowGap: '2rem',
             textAlign: 'center'
         }}>
-            <TrophyFilled style={{
+            {/* <TrophyFilled style={{
                 fontSize: '100px',
                 color: '#198855'
-            }} />
+            }} /> */}
             <div>
-                <h3>Woohoo!!!</h3>
-                <p>Congratulations for solving the mystery</p>
+            <Avatar size={200} src={require(`../assets/prisoner.png`)} />
+                <h3>Woohoo!!! <br/> You found the culprit</h3>
+                <p style={{ textAlign: 'center' }}>All evidence points to this player being behind the kidnapping. The motive seems clear—revenge for being let go by the team. The cops confirmed your suspicions and found our star player before the start of the match.</p>
             </div>
         </div>
         <AppPagination
@@ -182,7 +197,7 @@ const Game = () => {
             <p>{context.clues[displayLevel - 1].clue}</p>
         </div>
 
-        <CopyToClipboard text={schemas}
+        <CopyToClipboard text={context.schemas}
             onCopy={(_) => {
                 enqueueSnackbar('Copied to clipboard', { variant: 'info', autoHideDuration: 2000 })
             }}>
@@ -226,30 +241,45 @@ const Game = () => {
                     }}
                 />
             </FormGroup>
-            <Button type='submit' disabled={displayLevel < userLevel} style={{ width: '100%' }}>Submit</Button>
+            <Button type='submit' disabled={(displayLevel < userLevel) || loading}
+                style={{ width: '100%' }}>Submit</Button>
         </Form>
 
+        <Spin size="large" spinning={loading} fullscreen/>
+
         {
-            (results.length >= displayLevel) && <>
+            (displayResult) && (!displayResult.isExecutable ? <>
+            <Alert type='warning' showIcon message='The generated query could not be executed'/>
+            <h6>Generated Query</h6>
+                <CopyBlock
+                    text={displayResult.sql}
+                    language={'SQL'}
+                    showLineNumbers={true}
+                    wrapLines={true}
+                    codeBlock
+                />
+            </> : <>
                 <Alert message={
-                    results[displayLevel - 1].status === 'success' ? 'Correct Answer' : 'Wrong Answer'
-                } description={
-                    results[displayLevel - 1].status === 'success' ? 'You found the culprit' : 'You could not find the culprit'
-                } type={results[displayLevel - 1].status} showIcon />
+                    displayResult.status === 'success' ? 'Correct Answer' : 'Wrong Answer'
+                } 
+                // description={
+                //     displayResult.status === 'success' ? 'You found the culprit' : 'You could not find the culprit'
+                // } 
+                type={displayResult.status} showIcon />
                 <h6>Generated Query</h6>
                 <CopyBlock
-                    text={results[displayLevel - 1].sql}
+                    text={displayResult.sql}
                     language={'SQL'}
                     showLineNumbers={true}
                     wrapLines={true}
                     codeBlock
                 />
                 <h6>Generated Response</h6>
-                <JsonToTable json={results[displayLevel - 1].response} />
+                <JsonToTable json={displayResult.response} />
                 {
                     (displayLevel + 1 === userLevel) && <Button onClick={() => setDisplayLevel(userLevel)}>Continue</Button>
                 }
-            </>
+            </>)
         }
 
         <AppPagination

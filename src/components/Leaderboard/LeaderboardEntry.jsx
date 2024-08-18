@@ -11,13 +11,11 @@ const LeaderboardEntry = ( { row , index} ) => {
 
      useEffect(() => {
         async function setRows(){
-            // If there has been a change in dollarVolume
             if(oldRow && (oldRow.score !== row.score)){
                 setNewRow(row)
                 await delay(2100)
                 setOldRow(row)
             }
-            // If this is the first render
             else{
                 setNewRow(row)
                 setOldRow(row)

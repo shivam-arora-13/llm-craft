@@ -11,7 +11,7 @@ class AvatarPicker extends Component {
   };
 
   state = {
-    isAvatarPickerOpen: false,
+    isAvatarPickerOpen: true,
     currentAvatar: this.props.avatarList[0],
     scaleOutClass: ""
   };
